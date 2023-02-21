@@ -3,17 +3,17 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 from torch.cuda import is_available
 import sys
 
-cuda_extension = CUDAExtension(
-            'fused_adan', 
-            sources=['fused_adan/pybind_adan.cpp','./fused_adan/fused_adan_kernel.cu', './fused_adan/multi_tensor_adan_kernel.cu']
-        )
-
-ext_list = [cuda_extension]
+ext_list = []
 
 if "--unfused" in sys.argv:
     print("Building unfused version of adan")
-    ext_list = []
     sys.argv.remove("--unfused")
+else:
+    cuda_extension = CUDAExtension(
+            'fused_adan', 
+            sources=['fused_adan/pybind_adan.cpp','./fused_adan/fused_adan_kernel.cu', './fused_adan/multi_tensor_adan_kernel.cu']
+        )
+    ext_list = [cuda_extension]
 
 setup(
     name='adan',

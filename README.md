@@ -29,6 +29,12 @@ ______________________________________________________________________
 python3 -m pip install git+https://github.com/sail-sg/Adan.git
 ```
 
+install unfused version:
+
+```
+pip install --install-option="--unfused" git+https://github.com/AlexwellChen/Adan.git
+```
+
 FusedAdan is installed by default. A brief comparison of peak memory and wall duration for the optimizer is as follows. The duration time is the total time of 200 `optimizer.step()`. We further compare Adam and FusedAdan in great detail on GPT-2. See more results [here](./fused_adan/README.md).
 
 | Model      | Model Size (MB) | Adam Peak (MB) | Adan Peak (MB) | FusedAdan Peak (MB) | Adam Time (ms) | Adan Time (ms) | FusedAdan Time (ms) |

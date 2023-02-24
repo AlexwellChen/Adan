@@ -393,6 +393,7 @@ def _fused_adan_multi_tensor(
             beta1, beta2, beta3, bias_correction1, bias_correction2,
             bias_correction3_sqrt, lr, weight_decay, eps, no_prox,
             clip_global_grad_norm]
+        print("TypeError in fused_adan.adan_multi_tensor: ", e)
         print("params type: ", [type(p)+"\n" for p in param_debug_info])
     torch._foreach_zero_(neg_pre_grads)
     torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)

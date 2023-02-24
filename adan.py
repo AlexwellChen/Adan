@@ -380,21 +380,12 @@ def _fused_adan_multi_tensor(
     chunk_size = 2048 * 32
     multi_tensor_applier = MultiTensorApply(chunk_size)
     _dummy_overflow_buf = torch.cuda.IntTensor([0])
-    try:
-        multi_tensor_applier(
+    multi_tensor_applier(
             fused_adan.adan_multi_tensor, _dummy_overflow_buf,
             [params, grads, exp_avgs, exp_avg_sqs, exp_avg_diffs, neg_pre_grads],
             beta1, beta2, beta3, bias_correction1, bias_correction2,
             bias_correction3_sqrt, lr, weight_decay, eps, no_prox,
             clip_global_grad_norm)
-    except TypeError as e:
-        # Print current params type for debugging
-        param_debug_info = [chunk_size, _dummy_overflow_buf, [params, grads, exp_avgs, exp_avg_sqs, exp_avg_diffs, neg_pre_grads],
-            beta1, beta2, beta3, bias_correction1, bias_correction2,
-            bias_correction3_sqrt, lr, weight_decay, eps, no_prox,
-            clip_global_grad_norm]
-        print("TypeError in fused_adan.adan_multi_tensor: ", e)
-        print("params type: ", [type(p)+"\n" for p in param_debug_info])
     torch._foreach_zero_(neg_pre_grads)
     torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
 

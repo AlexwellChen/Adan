@@ -32,8 +32,8 @@ class MultiTensorApply(object):
             MultiTensorApply.available = False
             MultiTensorApply.import_err = err
 
-    def __call__(self, op, noop_flag_buffer, tensor_lists, *args):
-        return op(self.chunk_size, noop_flag_buffer, tensor_lists, *args)
+    def __call__(self, op, tensor_lists, *args):
+        return op(self.chunk_size, False, tensor_lists, *args)
 
 
 class Adan(Optimizer):

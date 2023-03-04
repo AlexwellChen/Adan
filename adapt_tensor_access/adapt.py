@@ -61,7 +61,7 @@ def get_tensor_access_group(params: List[List[torch.Tensor]], ratio=None):
             temp_params = [[] for _ in range(len(params))]
             for i in range(len(params)):
                 for layer in added_layer:
-                    temp_params[i]=params[i][layer]
+                    temp_params[i].append(params[i][layer])
             tensor_access_group.append(temp_params)
             current_usage = 0
             added_layer = []
@@ -70,7 +70,7 @@ def get_tensor_access_group(params: List[List[torch.Tensor]], ratio=None):
         temp_params = [[] for _ in range(len(params))]
         for i in range(len(params)):
                 for layer in added_layer:
-                    temp_params[i]=params[i][layer]
+                    temp_params[i].append(params[i][layer])
         tensor_access_group.append(temp_params)
     return tensor_access_group
     

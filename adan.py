@@ -73,8 +73,8 @@ class Adan(Optimizer):
                  no_prox=False,
                  foreach: bool = True,
                  fused: bool = False,
-                 adaptiv: bool = False,
-                 adaptiv_ratio: float = None):
+                 adaptive: bool = False,
+                 adaptive_ratio: float = None):
         if not 0.0 <= max_grad_norm:
             raise ValueError('Invalid Max grad norm: {}'.format(max_grad_norm))
         if not 0.0 <= lr:
@@ -98,8 +98,8 @@ class Adan(Optimizer):
                         no_prox=no_prox,
                         foreach=foreach,
                         fused=fused,
-                        adaptiv=adaptiv,
-                        adaptiv_ratio=adaptiv_ratio)
+                        adaptive=adaptive,
+                        adaptive_ratio=adaptive_ratio)
         self.adapt_group = None
         super().__init__(params, defaults)
 
@@ -196,10 +196,10 @@ class Adan(Optimizer):
                 exp_avg_diffs.append(state['exp_avg_diff'])
                 neg_pre_grads.append(state['neg_pre_grad'])
 
-            if group['adaptiv']:
+            if group['adaptive']:
                 tensor_group=[params_with_grad, grads, exp_avgs, exp_avg_sqs, exp_avg_diffs, neg_pre_grads]
                 if self.adapt_group is None:
-                    self.adapt_group = get_tensor_access_group(params=tensor_group, ratio=group['adaptiv_ratio'])
+                    self.adapt_group = get_tensor_access_group(params=tensor_group, ratio=group['adaptive_ratio'])
                 print("adapt_group length:",len(self.adapt_group))
 
                 kwargs = dict(

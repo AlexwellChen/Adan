@@ -202,28 +202,8 @@ class Adan(Optimizer):
                     self.adapt_group = get_tensor_access_group(params=tensor_group, ratio=group['adaptiv_ratio'])
                 print("adapt_group length:",len(self.adapt_group))
 
-            kwargs = dict(
-                params=params_with_grad,
-                grads=grads,
-                exp_avgs=exp_avgs,
-                exp_avg_sqs=exp_avg_sqs,
-                exp_avg_diffs=exp_avg_diffs,
-                neg_pre_grads=neg_pre_grads,
-                beta1=beta1,
-                beta2=beta2,
-                beta3=beta3,
-                bias_correction1=bias_correction1,
-                bias_correction2=bias_correction2,
-                bias_correction3_sqrt=math.sqrt(bias_correction3),
-                lr=group['lr'],
-                weight_decay=group['weight_decay'],
-                eps=group['eps'],
-                no_prox=group['no_prox'],
-                clip_global_grad_norm=clip_global_grad_norm,
-            )
-            if group['adaptiv']:
-                _adapt_tensor_adan(
-                    self.adapt_group, 
+                kwargs = dict(
+                    adapt_group=self.adapt_group,
                     beta1=beta1,
                     beta2=beta2,
                     beta3=beta3,
@@ -234,27 +214,52 @@ class Adan(Optimizer):
                     weight_decay=group['weight_decay'],
                     eps=group['eps'],
                     no_prox=group['no_prox'],
-                    clip_global_grad_norm=clip_global_grad_norm)
-            elif group['foreach']:
-                if group['fused']:
+                    clip_global_grad_norm=clip_global_grad_norm,
+                )
+                _adapt_tensor_adan(**kwargs)
+
+            else:
+                kwargs = dict(
+                    params=params_with_grad,
+                    grads=grads,
+                    exp_avgs=exp_avgs,
+                    exp_avg_sqs=exp_avg_sqs,
+                    exp_avg_diffs=exp_avg_diffs,
+                    neg_pre_grads=neg_pre_grads,
+                    beta1=beta1,
+                    beta2=beta2,
+                    beta3=beta3,
+                    bias_correction1=bias_correction1,
+                    bias_correction2=bias_correction2,
+                    bias_correction3_sqrt=math.sqrt(bias_correction3),
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    eps=group['eps'],
+                    no_prox=group['no_prox'],
+                    clip_global_grad_norm=clip_global_grad_norm,
+                )
+
+                if group['foreach']:
+                    if group['fused']:
+                        if torch.cuda.is_available():
+                            _fused_adan_multi_tensor(**kwargs)
+                        else:
+                            raise ValueError('Fused Adan does not support CPU')
+                    else:
+                        _multi_tensor_adan(**kwargs)
+                elif group['fused']:
                     if torch.cuda.is_available():
-                        _fused_adan_multi_tensor(**kwargs)
+                        _fused_adan_single_tensor(**kwargs)
                     else:
                         raise ValueError('Fused Adan does not support CPU')
                 else:
-                    _multi_tensor_adan(**kwargs)
-            elif group['fused']:
-                if torch.cuda.is_available():
-                    _fused_adan_single_tensor(**kwargs)
-                else:
-                    raise ValueError('Fused Adan does not support CPU')
-            else:
-                _single_tensor_adan(**kwargs)
+                    _single_tensor_adan(**kwargs)
 
         return loss
     
 def _adapt_tensor_adan(
     adapt_group: List[List[Tensor]],
+    *,
     beta1: float,
     beta2: float,
     beta3: float,

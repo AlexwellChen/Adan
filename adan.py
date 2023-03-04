@@ -200,7 +200,7 @@ class Adan(Optimizer):
                 tensor_group=[params_with_grad, grads, exp_avgs, exp_avg_sqs, exp_avg_diffs, neg_pre_grads]
                 if self.adapt_group is None:
                     self.adapt_group = get_tensor_access_group(params=tensor_group, ratio=group['adaptive_ratio'])
-                print("adapt_group length:",len(self.adapt_group))
+                    print("adapt_group length:",len(self.adapt_group))
 
                 kwargs = dict(
                     adapt_group=self.adapt_group,
@@ -216,7 +216,10 @@ class Adan(Optimizer):
                     no_prox=group['no_prox'],
                     clip_global_grad_norm=clip_global_grad_norm,
                 )
-                _adapt_tensor_adan(**kwargs)
+                if group['fused']:
+                    _fused_adapt_tensor_adan(**kwargs)
+                else:
+                    _adapt_tensor_adan(**kwargs)
 
             else:
                 kwargs = dict(
@@ -299,7 +302,50 @@ def _adapt_tensor_adan(
                 no_prox=no_prox,
                 clip_global_grad_norm=clip_global_grad_norm,
             )
-    
+
+def _fused_adapt_tensor_adan(
+    adapt_group: List[List[Tensor]],
+    *,
+    beta1: float,
+    beta2: float,
+    beta3: float,
+    bias_correction1: float,
+    bias_correction2: float,
+    bias_correction3_sqrt: float,
+    lr: float,
+    weight_decay: float,
+    eps: float,
+    no_prox: bool,
+    clip_global_grad_norm: Tensor,
+):
+    for tensor_group in adapt_group:
+        params = tensor_group[0]
+        grads = tensor_group[1]
+        exp_avgs = tensor_group[2]
+        exp_avg_sqs = tensor_group[3]
+        exp_avg_diffs = tensor_group[4]
+        neg_pre_grads = tensor_group[5]
+        if len(params) > 0:
+            _fused_adan_multi_tensor(
+                params=params,
+                grads=grads,
+                exp_avgs=exp_avgs,
+                exp_avg_sqs=exp_avg_sqs,
+                exp_avg_diffs=exp_avg_diffs,
+                neg_pre_grads=neg_pre_grads,
+                beta1=beta1,
+                beta2=beta2,
+                beta3=beta3,
+                bias_correction1=bias_correction1,
+                bias_correction2=bias_correction2,
+                bias_correction3_sqrt=bias_correction3_sqrt,
+                lr=lr,
+                weight_decay=weight_decay,
+                eps=eps,
+                no_prox=no_prox,
+                clip_global_grad_norm=clip_global_grad_norm,
+            )
+
 
 def _single_tensor_adan(
     params: List[Tensor],

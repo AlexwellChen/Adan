@@ -22,8 +22,8 @@ if __name__ == "__main__":
             with_stack=True
         )
 
-    params = get_fake_parameters(size=4096, n_params=100)
-    optimizer = Adan(params=params, foreach=True, fused=False)
+    params = get_fake_parameters(size=4096, n_params=10)
+    optimizer = Adan(params=params, foreach=False, fused=False, adaptiv=True)
     with prof:
         for i in range(10):
             optimizer.step()

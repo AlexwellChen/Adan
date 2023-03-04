@@ -222,8 +222,19 @@ class Adan(Optimizer):
                 clip_global_grad_norm=clip_global_grad_norm,
             )
             if group['adaptiv']:
-                kwargs['adapt_group'] = self.adapt_group
-                _adapt_tensor_adan(**kwargs)
+                _adapt_tensor_adan(
+                    self.adapt_group, 
+                    beta1=beta1,
+                    beta2=beta2,
+                    beta3=beta3,
+                    bias_correction1=bias_correction1,
+                    bias_correction2=bias_correction2,
+                    bias_correction3_sqrt=math.sqrt(bias_correction3),
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    eps=group['eps'],
+                    no_prox=group['no_prox'],
+                    clip_global_grad_norm=clip_global_grad_norm)
             elif group['foreach']:
                 if group['fused']:
                     if torch.cuda.is_available():
@@ -244,7 +255,6 @@ class Adan(Optimizer):
     
 def _adapt_tensor_adan(
     adapt_group: List[List[Tensor]],
-    *,
     beta1: float,
     beta2: float,
     beta3: float,

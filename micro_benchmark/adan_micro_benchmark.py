@@ -8,8 +8,8 @@ from torch.profiler import profile, record_function, ProfilerActivity
 def get_fake_parameters(n_params=10, size=512):
     params = []
     for i in range(n_params):
-        tensor = torch.randn(size, size, requires_grad=True, device='cpu')
-        tensor.grad = torch.randn(size, size, device='cpu')
+        tensor = torch.randn(size, size, requires_grad=True, device='cuda')
+        tensor.grad = torch.randn(size, size, device='cuda')
         params.append(tensor)
     return params
 

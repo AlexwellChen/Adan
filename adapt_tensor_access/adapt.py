@@ -1,7 +1,8 @@
 import torch
 import pynvml
+from typing import List
 
-def get_param_info(params: list[list[torch.Tensor]]):
+def get_param_info(params: List[List[torch.Tensor]]):
     if len(params) == 0:
         raise ValueError("params is empty")
     layer_info = [{} for _ in range(len(params[0]))]
@@ -24,7 +25,7 @@ def get_free_memory():
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
     return meminfo.free
 
-def get_tensor_access_group(params: list[list[torch.Tensor]], ratio=None):
+def get_tensor_access_group(params: List[List[torch.Tensor]], ratio=None):
     '''
     Structure of params: [[layer1_tensor1, layer2_tensor1, ...], [layer1_tensor2, layer2_tensor2, ...], ...]
     Each layer's tensor will be accessed in a group
@@ -58,18 +59,18 @@ def get_tensor_access_group(params: list[list[torch.Tensor]], ratio=None):
             if len(added_layer) == 0:
                 raise ValueError("No layer can be added to tensor_access_group, please increase ratio. Or it has reached the maximum usage.")
             temp_params = [[] for _ in range(len(params))]
-            for tensor in temp_params:
+            for i in range(len(params)):
                 for layer in added_layer:
-                    tensor.append(params[tensor][layer])
+                    temp_params[i]=params[i][layer]
             tensor_access_group.append(temp_params)
             current_usage = 0
             added_layer = []
     # Save the last group
     if len(added_layer) != 0:
         temp_params = [[] for _ in range(len(params))]
-        for tensor in temp_params:
-            for layer in added_layer:
-                tensor.append(params[tensor][layer])
+        for i in range(len(params)):
+                for layer in added_layer:
+                    temp_params[i]=params[i][layer]
         tensor_access_group.append(temp_params)
     return tensor_access_group
     

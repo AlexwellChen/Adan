@@ -18,6 +18,7 @@ from typing import List
 import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
+from adapt_tensor_access.adapt import get_tensor_access_group
 
 
 class MultiTensorApply(object):
@@ -71,7 +72,9 @@ class Adan(Optimizer):
                  max_grad_norm=0.0,
                  no_prox=False,
                  foreach: bool = True,
-                 fused: bool = False):
+                 fused: bool = False,
+                 adaptiv: bool = False,
+                 adaptiv_ratio: float = None):
         if not 0.0 <= max_grad_norm:
             raise ValueError('Invalid Max grad norm: {}'.format(max_grad_norm))
         if not 0.0 <= lr:
@@ -94,7 +97,10 @@ class Adan(Optimizer):
                         max_grad_norm=max_grad_norm,
                         no_prox=no_prox,
                         foreach=foreach,
-                        fused=fused)
+                        fused=fused,
+                        adaptiv=adaptiv,
+                        adaptiv_ratio=adaptiv_ratio)
+        self.adapt_group = None
         super().__init__(params, defaults)
 
     def __setstate__(self, state):
@@ -190,6 +196,12 @@ class Adan(Optimizer):
                 exp_avg_diffs.append(state['exp_avg_diff'])
                 neg_pre_grads.append(state['neg_pre_grad'])
 
+            if group['adaptiv']:
+                tensor_group=[params_with_grad, grads, exp_avgs, exp_avg_sqs, exp_avg_diffs, neg_pre_grads]
+                if self.adapt_group is None:
+                    self.adapt_group = get_tensor_access_group(params=tensor_group, ratio=group['adaptiv_ratio'])
+                print("adapt_group length:",len(self.adapt_group))
+
             kwargs = dict(
                 params=params_with_grad,
                 grads=grads,
@@ -209,8 +221,10 @@ class Adan(Optimizer):
                 no_prox=group['no_prox'],
                 clip_global_grad_norm=clip_global_grad_norm,
             )
-
-            if group['foreach']:
+            if group['adaptiv']:
+                kwargs['adapt_group'] = self.adapt_group
+                _adapt_tensor_adan(**kwargs)
+            elif group['foreach']:
                 if group['fused']:
                     if torch.cuda.is_available():
                         _fused_adan_multi_tensor(**kwargs)
@@ -227,7 +241,50 @@ class Adan(Optimizer):
                 _single_tensor_adan(**kwargs)
 
         return loss
-
+    
+def _adapt_tensor_adan(
+    adapt_group: List[List[Tensor]],
+    *,
+    beta1: float,
+    beta2: float,
+    beta3: float,
+    bias_correction1: float,
+    bias_correction2: float,
+    bias_correction3_sqrt: float,
+    lr: float,
+    weight_decay: float,
+    eps: float,
+    no_prox: bool,
+    clip_global_grad_norm: Tensor,
+):
+    for tensor_group in adapt_group:
+        params = tensor_group[0]
+        grads = tensor_group[1]
+        exp_avgs = tensor_group[2]
+        exp_avg_sqs = tensor_group[3]
+        exp_avg_diffs = tensor_group[4]
+        neg_pre_grads = tensor_group[5]
+        if len(params) > 0:
+            _multi_tensor_adan(
+                params=params,
+                grads=grads,
+                exp_avgs=exp_avgs,
+                exp_avg_sqs=exp_avg_sqs,
+                exp_avg_diffs=exp_avg_diffs,
+                neg_pre_grads=neg_pre_grads,
+                beta1=beta1,
+                beta2=beta2,
+                beta3=beta3,
+                bias_correction1=bias_correction1,
+                bias_correction2=bias_correction2,
+                bias_correction3_sqrt=bias_correction3_sqrt,
+                lr=lr,
+                weight_decay=weight_decay,
+                eps=eps,
+                no_prox=no_prox,
+                clip_global_grad_norm=clip_global_grad_norm,
+            )
+    
 
 def _single_tensor_adan(
     params: List[Tensor],

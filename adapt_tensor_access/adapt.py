@@ -23,6 +23,8 @@ def get_free_memory():
     idx = torch.cuda.current_device()
     handle = pynvml.nvmlDeviceGetHandleByIndex(idx)
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
+    print("Free memory: ", meminfo.free)
+    print("Total memory: ", meminfo.total)
     return meminfo.free
 
 def get_tensor_access_group(params: List[List[torch.Tensor]], ratio=None):

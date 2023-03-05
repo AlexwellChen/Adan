@@ -11,14 +11,12 @@ def get_param_info(params: List[List[torch.Tensor]]):
     for i in range(layer_num):
         layer_info[i]['index'] = i
         layer_size = 0 # total size of the layer, in bytes
-        layer_system_size = 0 # total size of the layer, in bytes
         for param in params:
-            layer_size += param[i].numel() * param[i].element_size()
-            layer_system_size += sys.getsizeof(param[i].storage())
+            layer_size += sys.getsizeof(param[i].storage())
         layer_info[i]['size'] = layer_size
-        layer_info[i]['system_size'] = layer_system_size
     # sort layer_info by size, largest first
     layer_info.sort(key=lambda x: x['size'], reverse=True)
+    print("Layer info: ", layer_info)
     return layer_info
 
 def get_free_memory():

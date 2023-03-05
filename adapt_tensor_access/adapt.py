@@ -1,6 +1,7 @@
 import torch
 import pynvml
 from typing import List
+import sys
 
 def get_param_info(params: List[List[torch.Tensor]]):
     if len(params) == 0:
@@ -10,9 +11,12 @@ def get_param_info(params: List[List[torch.Tensor]]):
     for i in range(layer_num):
         layer_info[i]['index'] = i
         layer_size = 0 # total size of the layer, in bytes
+        layer_system_size = 0 # total size of the layer, in bytes
         for param in params:
             layer_size += param[i].numel() * param[i].element_size()
+            layer_system_size += sys.getsizeof(param[i].storage())
         layer_info[i]['size'] = layer_size
+        layer_info[i]['system_size'] = layer_system_size
     # sort layer_info by size, largest first
     layer_info.sort(key=lambda x: x['size'], reverse=True)
     return layer_info
@@ -23,8 +27,9 @@ def get_free_memory():
     idx = torch.cuda.current_device()
     handle = pynvml.nvmlDeviceGetHandleByIndex(idx)
     meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
-    print("Free memory: ", meminfo.free)
-    print("Total memory: ", meminfo.total)
+    # Print free memory in MB
+    print("Free memory: ", meminfo.free/1024/1024, "MB")
+    print("Total memory: ", meminfo.total/1024/1024, "MB")
     return meminfo.free
 
 def get_tensor_access_group(params: List[List[torch.Tensor]], ratio=None):

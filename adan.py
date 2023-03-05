@@ -20,7 +20,6 @@ from torch import Tensor
 from torch.optim.optimizer import Optimizer
 from adapt_tensor_access.adapt import get_tensor_access_group
 
-
 class MultiTensorApply(object):
     available = False
     warned = False
@@ -127,7 +126,6 @@ class Adan(Optimizer):
     @torch.no_grad()
     def step(self, closure=None):
         """Performs a single optimization step."""
-
         loss = None
         if closure is not None:
             with torch.enable_grad():

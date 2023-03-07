@@ -14,7 +14,7 @@
 
 import math
 from typing import List
-import nvtx
+import torch.cuda.nvtx as nvtx
 
 import torch
 from torch import Tensor

@@ -251,6 +251,7 @@ def _single_tensor_adan(
     clip_global_grad_norm: Tensor,
 ):
     for i, param in enumerate(params):
+        nvtx.range_push("Single Param in")
         grad = grads[i]
         exp_avg = exp_avgs[i]
         exp_avg_sq = exp_avg_sqs[i]
@@ -286,6 +287,7 @@ def _single_tensor_adan(
             param.div_(1 + lr * weight_decay)
 
         neg_grad_or_diff.zero_().add_(grad, alpha=-1.0)
+        nvtx.range_pop()
 
 @nvtx.annotate("_multi_tensor_adan", color="red")
 def _multi_tensor_adan(
@@ -310,7 +312,7 @@ def _multi_tensor_adan(
 ):
     if len(params) == 0:
         return
-
+    nvtx.range_push("Multi Param in")
     torch._foreach_mul_(grads, clip_global_grad_norm)
 
     # for memory saving, we use `neg_pre_grads`
@@ -355,6 +357,7 @@ def _multi_tensor_adan(
         torch._foreach_div_(params, 1 + lr * weight_decay)
     torch._foreach_zero_(neg_pre_grads)
     torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
+    nvtx.range_pop()
 
 @nvtx.annotate("_fused_adan_multi_tensor", color="blue")
 def _fused_adan_multi_tensor(
@@ -381,6 +384,7 @@ def _fused_adan_multi_tensor(
     chunk_size = 2048 * 32
     multi_tensor_applier = MultiTensorApply(chunk_size)
     _dummy_overflow_buf = torch.cuda.IntTensor([0])
+    nvtx.range_push("Multi Param in")
     multi_tensor_applier(
             fused_adan.adan_multi_tensor, _dummy_overflow_buf,
             [params, grads, exp_avgs, exp_avg_sqs, exp_avg_diffs, neg_pre_grads],
@@ -389,6 +393,7 @@ def _fused_adan_multi_tensor(
             clip_global_grad_norm)
     torch._foreach_zero_(neg_pre_grads)
     torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
+    nvtx.range_pop()
 
 @nvtx.annotate("_fused_adan_single_tensor", color="green")
 def _fused_adan_single_tensor(
@@ -412,6 +417,7 @@ def _fused_adan_single_tensor(
     clip_global_grad_norm: Tensor,
 ):
     for i, param in enumerate(params):
+        nvtx.range_push("Single Param in")
         p_data_fp32 = param.data.float()
         out_p = param.data
         grad = grads[i]
@@ -442,3 +448,4 @@ def _fused_adan_single_tensor(
                 clip_global_grad_norm,
             )
         neg_grad.zero_().add_(grad, alpha=-1.0)
+        nvtx.range_pop()

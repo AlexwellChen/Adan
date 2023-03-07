@@ -14,6 +14,7 @@
 
 import math
 from typing import List
+import nvtx
 
 import torch
 from torch import Tensor
@@ -228,7 +229,7 @@ class Adan(Optimizer):
 
         return loss
 
-
+@nvtx.annotate("_single_tensor_adan", color="purple")
 def _single_tensor_adan(
     params: List[Tensor],
     grads: List[Tensor],
@@ -286,7 +287,7 @@ def _single_tensor_adan(
 
         neg_grad_or_diff.zero_().add_(grad, alpha=-1.0)
 
-
+@nvtx.annotate("_multi_tensor_adan", color="red")
 def _multi_tensor_adan(
     params: List[Tensor],
     grads: List[Tensor],
@@ -355,7 +356,7 @@ def _multi_tensor_adan(
     torch._foreach_zero_(neg_pre_grads)
     torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
 
-
+@nvtx.annotate("_fused_adan_multi_tensor", color="blue")
 def _fused_adan_multi_tensor(
     params: List[Tensor],
     grads: List[Tensor],
@@ -389,7 +390,7 @@ def _fused_adan_multi_tensor(
     torch._foreach_zero_(neg_pre_grads)
     torch._foreach_add_(neg_pre_grads, grads, alpha=-1.0)
 
-
+@nvtx.annotate("_fused_adan_single_tensor", color="green")
 def _fused_adan_single_tensor(
     params: List[Tensor],
     grads: List[Tensor],

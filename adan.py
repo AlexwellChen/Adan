@@ -174,11 +174,7 @@ class Adan(Optimizer):
                 if p.grad is None:
                     continue
                 params_with_grad.append(p)
-                # convert grad to fp16
-                grad_fp16 = p.grad
-                if grad_fp16.dtype == torch.float32:
-                    grad_fp16 = grad_fp16.half()
-                grads.append(grad_fp16)
+                grads.append(p.grad)
 
                 state = self.state[p]
                 if len(state) == 0:
@@ -188,7 +184,7 @@ class Adan(Optimizer):
 
                 if 'neg_pre_grad' not in state or group['step'] == 1:
                     state['neg_pre_grad'] = p.grad.clone().mul_(
-                        -clip_global_grad_norm).half()
+                        -clip_global_grad_norm)
 
                 exp_avgs.append(state['exp_avg'])
                 exp_avg_sqs.append(state['exp_avg_sq'])

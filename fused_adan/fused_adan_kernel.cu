@@ -191,8 +191,8 @@ void fused_adan_cuda(at::Tensor& p, at::Tensor& p_copy, at::Tensor& g, at::Tenso
     } else {
         using namespace at;
         const int block_dim = 1024;
-        // int grid_dim = ((total_size + block_dim - 1) / block_dim) >> 2;
-        int grid_dim = ((total_size + block_dim - 1) / block_dim);
+        int grid_dim = ((total_size + block_dim - 1) / block_dim) >> 2;
+        // int grid_dim = ((total_size + block_dim - 1) / block_dim);
         if (grid_dim == 0) grid_dim = 1;
         const dim3 blocks(grid_dim);
         DISPATCH_DOUBLE_AND_FLOAT(

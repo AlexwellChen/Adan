@@ -159,7 +159,7 @@ __global__ void adan_cuda_kernel<float, float>(
 
     g[global_id] *= clip_global_grad_norm;
 
-    GRAD_T diff, update;
+    float diff, update;
 
     diff = g[global_id] + neg_grad[global_id];
     update = g[global_id] + b2 * diff;

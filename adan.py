@@ -174,7 +174,11 @@ class Adan(Optimizer):
                 if p.grad is None:
                     continue
                 params_with_grad.append(p)
-                grads.append(p.grad)
+                # convert grad to fp16
+                grad_fp16 = p.grad
+                if grad_fp16.dtype == torch.float32:
+                    grad_fp16 = grad_fp16.half()
+                grads.append(grad_fp16)
 
                 state = self.state[p]
                 if len(state) == 0:

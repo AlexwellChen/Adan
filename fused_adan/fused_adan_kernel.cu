@@ -174,7 +174,12 @@ void fused_adan_cuda(at::Tensor& p, at::Tensor& p_copy, at::Tensor& g, at::Tenso
         // all other values should be fp32 for half gradients
         AT_ASSERTM(p.scalar_type() == at::ScalarType::Float,
                   "expected parameter to be of float type");
+        AT_ASSERTM(g.scalar_type() == at::ScalarType::Half,
+                  "expected gradient to be of half type");
+        AT_ASSERTM(neg_grad.scalar_type() == at::ScalarType::Half,
+                    "expected neg_grad to be of half type");
         // dispatch is done on the gradient type
+        std::cout<<"DISPATCH half adan in fused.cu"<<endl;
         using namespace at;  // prevents "toString is undefined" errors
         DISPATCH_FLOAT_AND_HALF(
             g.scalar_type(), 0, "adan_cuda_kernel",

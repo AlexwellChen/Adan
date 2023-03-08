@@ -43,7 +43,7 @@ void adan_single_tensor(at::Tensor& p,
   AT_ASSERTM(p_copy.numel() == num_elem || p_copy.numel() == 0,
              "number of elements in p_copy and p tensors should be equal, or "
              "p_copy should be empty");
-
+  std::cout<<"launch adan in pybind_adan.cpp"<<endl;
   fused_adan_cuda(p, p_copy, g, 
                   exp_avg, exp_avg_sq, exp_avg_diff,
                   pre_g, beta1, beta2, beta3,

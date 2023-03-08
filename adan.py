@@ -428,8 +428,7 @@ def _fused_adan_single_tensor(
         neg_grad = neg_pre_grads[i]
         with torch.cuda.device(param.device):
             import fused_adan
-            try:
-                fused_adan.adan_single_tensor(
+            fused_adan.adan_single_tensor(
                     p_data_fp32,
                     out_p,
                     grad,
@@ -448,10 +447,6 @@ def _fused_adan_single_tensor(
                     eps,
                     no_prox,
                     clip_global_grad_norm,
-                )
-            except Exception as e:
-                print("grad type: ", grad.dtype, "neg_grad type: ", neg_grad.dtype)
-                print("p_data_fp32 type: ", p_data_fp32.dtype)
-                print(e)
+            )
         neg_grad.zero_().add_(grad, alpha=-1.0)
         nvtx.range_pop()

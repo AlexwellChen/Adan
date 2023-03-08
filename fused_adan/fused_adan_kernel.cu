@@ -63,6 +63,50 @@ __global__ void adan_cuda_kernel(
     if (p_copy != NULL) p_copy[global_id] = (GRAD_T)p[global_id];
 }
 
+template <typename T, typename T>
+__global__ void adan_cuda_kernel_thread(
+    T* __restrict__ p,
+    T* __restrict__ p_copy,  // For mixed precision training, pass NULL if
+                                  // not needed
+    T* __restrict__ g, T* __restrict__ exp_avg, T* __restrict__ exp_avg_sq, T* __restrict__ exp_avg_diff,
+    const T* __restrict__ neg_grad, const float b1, const float b2, const float b3, 
+    const float bias_correction1, const float bias_correction2, const float bias_correction3_sqrt,
+    const float lr, const float decay, const float eps, const bool no_prox, const float clip_global_grad_norm, const size_t total_size
+    ){
+    int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (global_id >= total_size) return;
+
+    g[global_id] *= clip_global_grad_norm;
+
+    T diff, update;
+
+    diff = g[global_id] + neg_grad[global_id];
+    update = g[global_id] + b2 * diff;
+
+    exp_avg[global_id] = b1 * exp_avg[global_id] + (1 - b1) * g[global_id];
+
+    exp_avg_diff[global_id] = b2 * exp_avg_diff[global_id] + (1 - b2) * diff;
+
+    exp_avg_sq[global_id] = b3 * exp_avg_sq[global_id] + (1 - b3) * update * update;
+
+    float denom, step_size_diff, step_size;
+    denom = sqrtf(exp_avg_sq[global_id]) / bias_correction3_sqrt + eps;
+    step_size_diff = lr * b2 / bias_correction2;
+    step_size = lr / bias_correction1;
+
+    if (no_prox){
+        p[global_id] = p[global_id] * (1 - lr * decay)
+            - step_size * exp_avg[global_id] / denom
+            - step_size_diff * exp_avg_diff[global_id] / denom;
+    }else{
+        p[global_id] = p[global_id] - step_size * exp_avg[global_id] / denom
+            - step_size_diff * exp_avg_diff[global_id] / denom;
+        p[global_id] = p[global_id] / (1 + lr * decay);
+    } 
+    if (p_copy != NULL) p_copy[global_id] = (T)p[global_id];
+}
+
 template <>
 __global__ void adan_cuda_kernel<float, float>(
     float* __restrict__ p,
@@ -191,12 +235,29 @@ void fused_adan_cuda(at::Tensor& p, at::Tensor& p_copy, at::Tensor& g, at::Tenso
     } else {
         using namespace at;
         const int block_dim = 1024;
-        int grid_dim = ((total_size + block_dim - 1) / block_dim) >> 2;
+
+        // int grid_dim = ((total_size + block_dim - 1) / block_dim) >> 2;
+        // if (grid_dim == 0) grid_dim = 1;
+        // const dim3 blocks(grid_dim);
+        // DISPATCH_DOUBLE_AND_FLOAT(
+        //     g.scalar_type(), 0, "adan_cuda_kernel",
+        //     adan_cuda_kernel<scalar_t_0, scalar_t_0>
+        //     <<<blocks, block_dim, 0, stream>>>(
+        //         p.data_ptr<scalar_t_0>(),
+        //         NULL,
+        //         g.data_ptr<scalar_t_0>(), exp_avg.data_ptr<scalar_t_0>(), exp_avg_sq.data_ptr<scalar_t_0>(),exp_avg_diff.data_ptr<scalar_t_0>(), 
+        //         neg_grad.data_ptr<scalar_t_0>(), 
+        //         beta1, beta2, beta3, bias_correction1, bias_correction2, bias_correction3_sqrt, 
+        //         lr, decay, eps, no_prox, clip_global_grad_norm, total_size
+        //     );
+        // );
+        
+        int grid_dim = ((total_size + block_dim - 1) / block_dim);
         if (grid_dim == 0) grid_dim = 1;
         const dim3 blocks(grid_dim);
         DISPATCH_DOUBLE_AND_FLOAT(
-            g.scalar_type(), 0, "adan_cuda_kernel",
-            adan_cuda_kernel<scalar_t_0, scalar_t_0>
+            g.scalar_type(), 0, "adan_cuda_kernel_thread",
+            adan_cuda_kernel_thread<scalar_t_0, scalar_t_0>
             <<<blocks, block_dim, 0, stream>>>(
                 p.data_ptr<scalar_t_0>(),
                 NULL,

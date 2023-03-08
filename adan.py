@@ -450,7 +450,8 @@ def _fused_adan_single_tensor(
                     clip_global_grad_norm,
                 )
             except Exception as e:
-                print("grad type: ", grad.type())
+                print("grad type: ", grad.dtype, "neg_grad type: ", neg_grad.dtype)
+                print("p_data_fp32 type: ", p_data_fp32.dtype)
                 print(e)
         neg_grad.zero_().add_(grad, alpha=-1.0)
         nvtx.range_pop()

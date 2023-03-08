@@ -15,7 +15,7 @@
 import math
 from typing import List
 import torch.cuda.nvtx as nvtx
-
+import traceback
 import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
@@ -428,7 +428,8 @@ def _fused_adan_single_tensor(
         neg_grad = neg_pre_grads[i]
         with torch.cuda.device(param.device):
             import fused_adan
-            fused_adan.adan_single_tensor(
+            try:
+                fused_adan.adan_single_tensor(
                     p_data_fp32,
                     out_p,
                     grad,
@@ -447,6 +448,8 @@ def _fused_adan_single_tensor(
                     eps,
                     no_prox,
                     clip_global_grad_norm,
-            )
+                )
+            except Exception as e:
+                print(traceback.format_exc())
         neg_grad.zero_().add_(grad, alpha=-1.0)
         nvtx.range_pop()

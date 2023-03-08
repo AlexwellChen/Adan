@@ -188,7 +188,7 @@ class Adan(Optimizer):
 
                 if 'neg_pre_grad' not in state or group['step'] == 1:
                     state['neg_pre_grad'] = p.grad.clone().mul_(
-                        -clip_global_grad_norm)
+                        -clip_global_grad_norm).half()
 
                 exp_avgs.append(state['exp_avg'])
                 exp_avg_sqs.append(state['exp_avg_sq'])

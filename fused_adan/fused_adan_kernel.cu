@@ -157,45 +157,33 @@ __global__ void adan_cuda_kernel<float, float>(
 
     if (global_id >= total_size) return;
 
-    float g = grad[global_id];
-    float p = param[global_id];
-    float exp_avg = exp_avg_ptr[global_id];
-    float exp_avg_sq = exp_avg_sq_ptr[global_id];
-    float exp_avg_diff = exp_avg_diff_ptr[global_id];
-
-    g *= clip_global_grad_norm;
+    g[global_id] *= clip_global_grad_norm;
 
     float diff, update;
 
-    diff = g + neg_grad[global_id];
-    update = g + b2 * diff;
+    diff = g[global_id] + neg_grad[global_id];
+    update = g[global_id] + b2 * diff;
 
-    exp_avg = b1 * exp_avg + (1 - b1) * g;
+    exp_avg[global_id] = b1 * exp_avg[global_id] + (1 - b1) * g[global_id];
 
-    exp_avg_diff = b2 * exp_avg_diff + (1 - b2) * diff;
+    exp_avg_diff[global_id] = b2 * exp_avg_diff[global_id] + (1 - b2) * diff;
 
-    exp_avg_sq = b3 * exp_avg_sq + (1 - b3) * update * update;
+    exp_avg_sq[global_id] = b3 * exp_avg_sq[global_id] + (1 - b3) * update * update;
 
     float denom, step_size_diff, step_size;
-    denom = sqrtf(exp_avg_sq) / bias_correction3_sqrt + eps;
+    denom = sqrtf(exp_avg_sq[global_id]) / bias_correction3_sqrt + eps;
     step_size_diff = lr * b2 / bias_correction2;
     step_size = lr / bias_correction1;
 
     if (no_prox){
-        p = p * (1 - lr * decay)
-            - step_size * exp_avg / denom
-            - step_size_diff * exp_avg_diff / denom;
+        p[global_id] = p[global_id] * (1 - lr * decay)
+            - step_size * exp_avg[global_id] / denom
+            - step_size_diff * exp_avg_diff[global_id] / denom;
     }else{
-        p = p - step_size * exp_avg / denom
-            - step_size_diff * exp_avg_diff / denom;
-        p = p / (1 + lr * decay);
+        p[global_id] = p[global_id] - step_size * exp_avg[global_id] / denom
+            - step_size_diff * exp_avg_diff[global_id] / denom;
+        p[global_id] = p[global_id] / (1 + lr * decay);
     } 
-    
-    grad[global_id] = g;
-    param[global_id] = p;
-    exp_avg_ptr[global_id] = exp_avg;
-    exp_avg_sq_ptr[global_id] = exp_avg_sq;
-    exp_avg_diff_ptr[global_id] = exp_avg_diff;
 
 }
 
